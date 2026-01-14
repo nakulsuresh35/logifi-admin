@@ -1,44 +1,82 @@
-import { useState, useEffect } from 'react'
-import { LayoutDashboard, Truck, FileText, LogOut, TrendingUp, DollarSign, Activity } from 'lucide-react'
-import { supabase } from './supabaseClient'
-import './App.css'
+import React, { useState, useEffect } from 'react';
+
+// 1. Safe Imports (Prevents "export not found" crashes)
+import { LayoutDashboard } from 'lucide-react';
+import { Truck } from 'lucide-react';
+import { LogOut } from 'lucide-react';
+import { TrendingUp } from 'lucide-react';
+import { DollarSign } from 'lucide-react';
+import { Activity } from 'lucide-react';
+
+import { supabase } from './supabaseClient';
+import ProfitChart from './components/ProfitChart'; // Ensure you created this file!
+import './App.css';
 
 function App() {
-  const [activeTab, setActiveTab] = useState('dashboard')
+  const [activeTab, setActiveTab] = useState('dashboard');
+  
+  // State for Cards
   const [stats, setStats] = useState({ 
     totalRevenue: 0, 
     activeTrucks: 0, 
     totalTrips: 0 
-  })
+  });
+
+  // State for Graph
+  const [chartData, setChartData] = useState([]);
 
   // FETCH DATA FROM SUPABASE
   useEffect(() => {
-    fetchStats()
-  }, [])
+    fetchStats();
+  }, []);
 
   const fetchStats = async () => {
-    // 1. Get Completed Trips for Revenue
+    // 1. Get Trips (Select created_at for the graph)
     const { data: trips } = await supabase
       .from('trips')
-      .select('total_freight, status')
+      .select('created_at, total_freight, status')
+      .order('created_at', { ascending: true }); // Order by date for the graph
     
-    // 2. Calculate Totals
-    let revenue = 0
-    let active = 0
-    
+    let revenue = 0;
+    let active = 0;
+    const dailyMap = {}; // Helper object to group money by date
+
     if (trips) {
       trips.forEach(trip => {
-        if (trip.total_freight) revenue += trip.total_freight
-        if (trip.status === 'active') active += 1
-      })
+        // --- CALCULATION FOR CARDS ---
+        if (trip.total_freight) revenue += trip.total_freight;
+        if (trip.status === 'active') active += 1;
+
+        // --- CALCULATION FOR GRAPH ---
+        // Only graph trips that have revenue (finished trips)
+        if (trip.created_at && trip.total_freight > 0) {
+          // Format date like "12 Jan"
+          const date = new Date(trip.created_at).toLocaleDateString('en-US', { day: 'numeric', month: 'short' });
+          
+          // Add to existing total or start new
+          if (dailyMap[date]) {
+            dailyMap[date] += trip.total_freight;
+          } else {
+            dailyMap[date] = trip.total_freight;
+          }
+        }
+      });
     }
+
+    // Convert Map to Array for Recharts: [{ date: "12 Jan", amount: 5000 }]
+    const graphData = Object.keys(dailyMap).map(date => ({
+      date,
+      amount: dailyMap[date]
+    }));
 
     setStats({
       totalRevenue: revenue,
       activeTrucks: active,
       totalTrips: trips?.length || 0
-    })
-  }
+    });
+    
+    setChartData(graphData);
+  };
 
   // --- COMPONENT: DASHBOARD ---
   const Dashboard = () => (
@@ -75,12 +113,12 @@ function App() {
         </div>
       </div>
       
+      {/* PROFIT GRAPH (Now Connected!) */}
       <div className="card">
-        <h3>🚀 Coming Soon: Profit/Loss Graph</h3>
-        <p style={{color: '#6b7280'}}>We will add the Recharts graph here next.</p>
+         <ProfitChart data={chartData} />
       </div>
     </div>
-  )
+  );
 
   return (
     <div className="app-container">
@@ -91,17 +129,24 @@ function App() {
         </div>
         
         <nav>
-          <div className={`nav-item ${activeTab === 'dashboard' ? 'active' : ''}`} onClick={() => setActiveTab('dashboard')}>
+          <div 
+            className={`nav-item ${activeTab === 'dashboard' ? 'active' : ''}`} 
+            onClick={() => setActiveTab('dashboard')}
+          >
             <LayoutDashboard size={20} /> Dashboard
           </div>
-          <div className={`nav-item ${activeTab === 'trucks' ? 'active' : ''}`} onClick={() => setActiveTab('trucks')}>
+          
+          <div 
+            className={`nav-item ${activeTab === 'trucks' ? 'active' : ''}`} 
+            onClick={() => setActiveTab('trucks')}
+          >
             <Truck size={20} /> Live Map
           </div>
         </nav>
 
         <div style={{ marginTop: 'auto' }}>
-          <div className="nav-item" style={{ color: '#ef4444' }}>
-            <LogOut size={20} /> Logout
+          <div className="nav-item" style={{ color: '#ef4444', cursor: 'pointer' }} onClick={() => window.location.reload()}>
+            <LogOut size={20} /> Refresh Data
           </div>
         </div>
       </div>
@@ -109,10 +154,15 @@ function App() {
       {/* MAIN CONTENT */}
       <div className="main-content">
         {activeTab === 'dashboard' && <Dashboard />}
-        {activeTab === 'trucks' && <h1>Live Map Coming Soon...</h1>}
+        {activeTab === 'trucks' && (
+          <div className="card">
+            <h1>📍 Live Map</h1>
+            <p>Coming up in the next phase...</p>
+          </div>
+        )}
       </div>
     </div>
-  )
+  );
 }
 
-export default App
+export default App;

@@ -28,7 +28,7 @@ const ProfitChart = ({ data }) => {
             tick={{fontSize: 12}} 
             axisLine={false} 
             tickLine={false}
-            tickFormatter={(value) => ₹${value}} // Add Rupee symbol
+            tickFormatter={(value) => '₹${value}'} // Add Rupee symbol
           />
           <Tooltip 
             cursor={{fill: '#f3f4f6'}}
