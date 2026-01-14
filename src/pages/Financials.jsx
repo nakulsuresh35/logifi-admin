@@ -22,9 +22,10 @@ const Financials = () => {
 
   const handleTruckClick = async (truck) => {
     setSelectedTruck(truck);
+    // FIX: We select '*' from expenses so we get the 'type' column correctly
     const { data } = await supabase
       .from('trips')
-      .select('*, expenses(*)')
+      .select('*, expenses(*)') 
       .eq('vehicle_id', truck.id)
       .eq('status', 'completed')
       .order('created_at', { ascending: false });
@@ -35,52 +36,65 @@ const Financials = () => {
     }
   };
 
-  // --- EXCEL: SINGLE TRIP STATEMENT ---
-  const downloadTripExcel = () => {
-    if (!selectedTrip) return;
+  // --- NEW EXCEL LOGIC: PIVOT TABLE (One Row Per Trip) ---
+  const downloadTruckReport = () => {
+    if (!truckTrips.length) return alert("No trips to export!");
 
-    // 1. Prepare Rows
-    const rows = [];
-    
-    // Header Info
-    rows.push({ Description: "TRIP DETAILS", Amount: "" });
-    rows.push({ Description: `Route: ${selectedTrip.from_location} to ${selectedTrip.to_location}`, Amount: "" });
-    rows.push({ Description: `Date: ${new Date(selectedTrip.created_at).toLocaleDateString()}`, Amount: "" });
-    rows.push({ Description: `Truck: ${selectedTruck.plate_number}`, Amount: "" });
-    rows.push({ Description: "", Amount: "" }); // Spacer
+    // 1. Pivot the data
+    const excelRows = truckTrips.map(trip => {
+      // Basic Trip Info
+      const row = {
+        Date: new Date(trip.created_at).toLocaleDateString(),
+        Route: `${trip.from_location} - ${trip.to_location}`,
+        Driver: trip.driver_name || 'N/A',
+        'Total Freight (Income)': trip.total_freight || 0,
+      };
 
-    // Income Section
-    rows.push({ Description: "INCOME", Amount: "" });
-    rows.push({ Description: "Freight Payment", Amount: selectedTrip.total_freight || 0 });
-    rows.push({ Description: "", Amount: "" }); // Spacer
+      // Initialize Expense Columns (so they appear even if 0)
+      row['Diesel'] = 0;
+      row['AdBlue'] = 0;
+      row['Driver Bata'] = 0;
+      row['Police/RTO'] = 0;
+      row['Food'] = 0;
+      row['Other'] = 0;
 
-    // Expense Section
-    rows.push({ Description: "EXPENSES", Amount: "" });
-    let totalExp = 0;
-    if (selectedTrip.expenses) {
-        selectedTrip.expenses.forEach(exp => {
-            rows.push({ Description: exp.expense_type, Amount: -exp.amount }); // Negative for expense
-            totalExp += exp.amount;
+      let totalExpense = 0;
+
+      // Fill Expense Columns
+      if (trip.expenses) {
+        trip.expenses.forEach(exp => {
+          // FIX: Use 'type' from your DB schema
+          const typeName = exp.type || 'Other'; 
+          
+          // Add to the specific column (or 'Other' if it doesn't match standard names)
+          if (row.hasOwnProperty(typeName)) {
+            row[typeName] += (exp.amount || 0);
+          } else {
+            row['Other'] += (exp.amount || 0);
+          }
+          
+          totalExpense += exp.amount;
         });
-    }
-    rows.push({ Description: "", Amount: "" }); // Spacer
+      }
 
-    // Summary
-    const netProfit = (selectedTrip.total_freight || 0) - totalExp;
-    rows.push({ Description: "NET PROFIT", Amount: netProfit });
+      row['Total Expenses'] = totalExpense;
+      row['NET PROFIT'] = (trip.total_freight || 0) - totalExpense;
 
-    // 2. Generate File
-    const ws = XLSX.utils.json_to_sheet(rows);
+      return row;
+    });
+
+    // 2. Generate Sheet
+    const ws = XLSX.utils.json_to_sheet(excelRows);
     
-    // Adjust column widths for readability
-    ws['!cols'] = [{ wch: 40 }, { wch: 15 }]; 
+    // Auto-width for columns
+    const wscols = Object.keys(excelRows[0]).map(() => ({ wch: 18 }));
+    ws['!cols'] = wscols;
 
     const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Trip Statement");
-    XLSX.writeFile(wb, `Trip_${selectedTruck.plate_number}_${selectedTrip.from_location}.xlsx`);
+    XLSX.utils.book_append_sheet(wb, ws, "Trip Register");
+    XLSX.writeFile(wb, `${selectedTruck.plate_number}_Master_Report.xlsx`);
   };
 
-  // Helper
   const calculateTotalExpenses = (expenses) => {
     if (!expenses) return 0;
     return expenses.reduce((sum, item) => sum + (item.amount || 0), 0);
@@ -103,7 +117,7 @@ const Financials = () => {
                 <div style={{ background: '#F3F4F6', padding: '12px', borderRadius: '12px' }}><Truck size={24} color="#374151"/></div>
                 <div>
                   <h3 style={{ margin: 0, fontSize: '18px' }}>{truck.plate_number}</h3>
-                  <p style={{ margin: '4px 0 0 0', color: '#6B7280' }}>Click to view details</p>
+                  <p style={{ margin: '4px 0 0 0', color: '#6B7280' }}>Click to view trips</p>
                 </div>
               </div>
               <ChevronRight color="#9CA3AF" />
@@ -116,15 +130,42 @@ const Financials = () => {
 
   // 2. SINGLE TRUCK HISTORY
   if (view === 'truck') {
+    const totalRev = truckTrips.reduce((sum, t) => sum + (t.total_freight || 0), 0);
+    const totalExp = truckTrips.reduce((sum, t) => sum + calculateTotalExpenses(t.expenses), 0);
+    const totalProfit = totalRev - totalExp;
+
     return (
       <div>
         <button onClick={() => setView('list')} style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '5px', color: '#6B7280', marginBottom: '20px' }}>
           <ArrowLeft size={20} /> Back to Fleet
         </button>
+
         <div style={{ backgroundColor: '#10B981', padding: '30px', borderRadius: '16px', color: 'white', marginBottom: '30px' }}>
-            <h1 style={{ margin: 0, fontSize: '24px' }}>{selectedTruck.plate_number}</h1>
-            <p style={{ margin: '5px 0 0 0', opacity: 0.9 }}>Select a trip to view full accounts</p>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start' }}>
+                <div>
+                    <h1 style={{ margin: 0, fontSize: '24px' }}>{selectedTruck.plate_number}</h1>
+                    <p style={{ margin: '5px 0 0 0', opacity: 0.9 }}>Trip History & Financials</p>
+                </div>
+                <button 
+                  onClick={downloadTruckReport} 
+                  style={{ backgroundColor: 'white', color: '#10B981', border: 'none', padding: '10px 20px', borderRadius: '8px', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}
+                >
+                    <Download size={18} /> Download Excel Report
+                </button>
+            </div>
+            
+            <div style={{ display: 'flex', gap: '40px', marginTop: '30px' }}>
+                <div>
+                    <p style={{ margin: 0, opacity: 0.8, fontSize: '12px' }}>TOTAL REVENUE</p>
+                    <p style={{ margin: '5px 0 0 0', fontSize: '24px', fontWeight: 'bold' }}>₹{totalRev.toLocaleString()}</p>
+                </div>
+                <div>
+                    <p style={{ margin: 0, opacity: 0.8, fontSize: '12px' }}>NET PROFIT</p>
+                    <p style={{ margin: '5px 0 0 0', fontSize: '24px', fontWeight: 'bold' }}>₹{totalProfit.toLocaleString()}</p>
+                </div>
+            </div>
         </div>
+
         <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
           {truckTrips.map(trip => (
              <div key={trip.id} className="card hover-card" onClick={() => { setSelectedTrip(trip); setView('trip'); }} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '20px', cursor: 'pointer' }}>
@@ -143,7 +184,7 @@ const Financials = () => {
     );
   }
 
-  // 3. TRIP DETAILS (With Excel Button)
+  // 3. TRIP DETAILS
   if (view === 'trip') {
     const expenses = selectedTrip.expenses || [];
     const profit = (selectedTrip.total_freight || 0) - calculateTotalExpenses(expenses);
@@ -154,31 +195,25 @@ const Financials = () => {
           <ArrowLeft size={20} /> Back to {selectedTruck.plate_number}
         </button>
 
-        {/* HEADER WITH DOWNLOAD BUTTON */}
         <div style={{ backgroundColor: '#1E40AF', padding: '30px', borderRadius: '16px', color: 'white', marginBottom: '20px' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start' }}>
-            <div>
-                <h1 style={{ margin: 0, fontSize: '20px' }}>{selectedTrip.from_location} → {selectedTrip.to_location}</h1>
-                <div style={{ display: 'flex', gap: '20px', marginTop: '10px', opacity: 0.9 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}><Calendar size={16} /> {new Date(selectedTrip.created_at).toLocaleDateString()}</div>
-                </div>
+            <h1 style={{ margin: 0, fontSize: '20px' }}>{selectedTrip.from_location} → {selectedTrip.to_location}</h1>
+            <div style={{ display: 'flex', gap: '20px', marginTop: '10px', opacity: 0.9 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}><Calendar size={16} /> {new Date(selectedTrip.created_at).toLocaleDateString()}</div>
             </div>
-            <button onClick={downloadTripExcel} style={{ backgroundColor: 'white', color: '#1E40AF', border: 'none', padding: '10px 20px', borderRadius: '8px', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
-                <Download size={18} /> Download Excel
-            </button>
-          </div>
         </div>
 
-        {/* ACCOUNTS CARD */}
         <div className="card" style={{ padding: '24px', marginBottom: '20px' }}>
            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '15px', borderBottom: '1px solid #E5E7EB', paddingBottom: '15px' }}>
               <span style={{ color: '#6B7280' }}>Freight (Income)</span>
               <span style={{ color: '#10B981', fontWeight: 'bold' }}>+ ₹{selectedTrip.total_freight?.toLocaleString()}</span>
            </div>
            
+           {/* FIX: Using 'exp.type' from database schema */}
            {expenses.map((exp, i) => (
              <div key={i} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px' }}>
-                <span style={{ color: '#6B7280', display: 'flex', alignItems: 'center', gap: '8px' }}><FileText size={14} /> {exp.expense_type}</span>
+                <span style={{ color: '#374151', display: 'flex', alignItems: 'center', gap: '8px', fontWeight: '500' }}>
+                  <FileText size={14} color="#6B7280"/> {exp.type || "Uncategorized"}
+                </span>
                 <span style={{ color: '#EF4444' }}>- ₹{exp.amount.toLocaleString()}</span>
              </div>
            ))}
