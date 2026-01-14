@@ -1,118 +1,129 @@
-import { useState, useEffect } from 'react'
-import { LayoutDashboard, Truck, FileText, LogOut, TrendingUp, DollarSign, Activity } from 'lucide-react'
-import { supabase } from './supabaseClient'
-import './App.css'
+import React, { useState } from 'react';
+import { 
+  LayoutDashboard, Truck, FileText, LogOut, 
+  Shield, CreditCard, PieChart, TrendingUp 
+} from 'lucide-react';
+import { supabase } from './supabaseClient';
+import './App.css';
+
+// Import the new pages (We will build these next!)
+import Financials from './pages/Financials';
+import MonthlyPnL from './pages/MonthlyPnL';
+import Insurance from './pages/Insurance';
+import Tax from './pages/Tax';
 
 function App() {
-  const [activeTab, setActiveTab] = useState('dashboard')
-  const [stats, setStats] = useState({ 
-    totalRevenue: 0, 
-    activeTrucks: 0, 
-    totalTrips: 0 
-  })
+  const [activeTab, setActiveTab] = useState('home');
 
-  // FETCH DATA FROM SUPABASE
-  useEffect(() => {
-    fetchStats()
-  }, [])
-
-  const fetchStats = async () => {
-    // 1. Get Completed Trips for Revenue
-    const { data: trips } = await supabase
-      .from('trips')
-      .select('total_freight, status')
-    
-    // 2. Calculate Totals
-    let revenue = 0
-    let active = 0
-    
-    if (trips) {
-      trips.forEach(trip => {
-        if (trip.total_freight) revenue += trip.total_freight
-        if (trip.status === 'active') active += 1
-      })
-    }
-
-    setStats({
-      totalRevenue: revenue,
-      activeTrucks: active,
-      totalTrips: trips?.length || 0
-    })
-  }
-
-  // --- COMPONENT: DASHBOARD ---
-  const Dashboard = () => (
+  // --- COMPONENT: HOME (The 4 Options Page) ---
+  const Home = () => (
     <div>
       <div className="header">
-        <h1 className="page-title">Fleet Overview</h1>
-        <p className="subtitle">Real-time metrics from your logistics network.</p>
+        <h1 className="page-title">Owner Dashboard</h1>
+        <p className="subtitle">Select a module to manage your fleet.</p>
       </div>
 
-      {/* STATS CARDS */}
-      <div className="stats-grid">
-        <div className="card">
-          <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-            <span className="stat-label">Total Revenue</span>
-            <DollarSign color="#16a34a" />
+      <div className="stats-grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))' }}>
+        
+        {/* Option 1: Financials */}
+        <div className="card hover-card" onClick={() => setActiveTab('financials')}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '15px', marginBottom: '15px' }}>
+            <div style={{ background: '#EFF6FF', padding: '12px', borderRadius: '10px' }}>
+              <PieChart size={32} color="#2563EB" />
+            </div>
+            <h3>Financials</h3>
           </div>
-          <div className="stat-value">₹{stats.totalRevenue.toLocaleString()}</div>
+          <p style={{ color: '#6B7280', margin: 0 }}>
+            View trip lists, profit/loss per truck, and expense breakdowns.
+          </p>
         </div>
 
-        <div className="card">
-          <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-            <span className="stat-label">Active Trucks</span>
-            <Activity color="#3b82f6" />
+        {/* Option 2: Monthly P&L */}
+        <div className="card hover-card" onClick={() => setActiveTab('monthly_pnl')}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '15px', marginBottom: '15px' }}>
+            <div style={{ background: '#ECFDF5', padding: '12px', borderRadius: '10px' }}>
+              <TrendingUp size={32} color="#10B981" />
+            </div>
+            <h3>Monthly P&L</h3>
           </div>
-          <div className="stat-value">{stats.activeTrucks}</div>
+          <p style={{ color: '#6B7280', margin: 0 }}>
+            Track monthly performance and net profit across the fleet.
+          </p>
         </div>
 
-        <div className="card">
-          <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-            <span className="stat-label">Total Trips</span>
-            <TrendingUp color="#f59e0b" />
+        {/* Option 3: Insurance */}
+        <div className="card hover-card" onClick={() => setActiveTab('insurance')}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '15px', marginBottom: '15px' }}>
+            <div style={{ background: '#FEF3C7', padding: '12px', borderRadius: '10px' }}>
+              <Shield size={32} color="#D97706" />
+            </div>
+            <h3>Insurance Tracker</h3>
           </div>
-          <div className="stat-value">{stats.totalTrips}</div>
+          <p style={{ color: '#6B7280', margin: 0 }}>
+            Monitor expiry dates and renew annual insurance policies.
+          </p>
         </div>
-      </div>
-      
-      <div className="card">
-        <h3>🚀 Coming Soon: Profit/Loss Graph</h3>
-        <p style={{color: '#6b7280'}}>We will add the Recharts graph here next.</p>
+
+        {/* Option 4: Tax */}
+        <div className="card hover-card" onClick={() => setActiveTab('tax')}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '15px', marginBottom: '15px' }}>
+            <div style={{ background: '#FEE2E2', padding: '12px', borderRadius: '10px' }}>
+              <CreditCard size={32} color="#DC2626" />
+            </div>
+            <h3>Tax Tracker</h3>
+          </div>
+          <p style={{ color: '#6B7280', margin: 0 }}>
+            Manage quarterly tax payments and due date countdowns.
+          </p>
+        </div>
+
       </div>
     </div>
-  )
+  );
 
   return (
     <div className="app-container">
       {/* SIDEBAR */}
       <div className="sidebar">
-        <div className="logo">
+        <div className="logo" onClick={() => setActiveTab('home')} style={{cursor: 'pointer'}}>
           <Truck size={28} /> LogiFi
         </div>
         
         <nav>
-          <div className={`nav-item ${activeTab === 'dashboard' ? 'active' : ''}`} onClick={() => setActiveTab('dashboard')}>
-            <LayoutDashboard size={20} /> Dashboard
+          <div className={`nav-item ${activeTab === 'home' ? 'active' : ''}`} onClick={() => setActiveTab('home')}>
+            <LayoutDashboard size={20} /> Home
           </div>
-          <div className={`nav-item ${activeTab === 'trucks' ? 'active' : ''}`} onClick={() => setActiveTab('trucks')}>
-            <Truck size={20} /> Live Map
+          <div className={`nav-item ${activeTab === 'financials' ? 'active' : ''}`} onClick={() => setActiveTab('financials')}>
+            <PieChart size={20} /> Financials
+          </div>
+          <div className={`nav-item ${activeTab === 'monthly_pnl' ? 'active' : ''}`} onClick={() => setActiveTab('monthly_pnl')}>
+            <TrendingUp size={20} /> Monthly P&L
+          </div>
+          <div className={`nav-item ${activeTab === 'insurance' ? 'active' : ''}`} onClick={() => setActiveTab('insurance')}>
+            <Shield size={20} /> Insurance
+          </div>
+          <div className={`nav-item ${activeTab === 'tax' ? 'active' : ''}`} onClick={() => setActiveTab('tax')}>
+            <CreditCard size={20} /> Tax
           </div>
         </nav>
 
         <div style={{ marginTop: 'auto' }}>
-          <div className="nav-item" style={{ color: '#ef4444' }}>
+          <div className="nav-item" style={{ color: '#ef4444', cursor: 'pointer' }} onClick={() => window.location.reload()}>
             <LogOut size={20} /> Logout
           </div>
         </div>
       </div>
 
-      {/* MAIN CONTENT */}
+      {/* MAIN CONTENT AREA */}
       <div className="main-content">
-        {activeTab === 'dashboard' && <Dashboard />}
-        {activeTab === 'trucks' && <h1>Live Map Coming Soon...</h1>}
+        {activeTab === 'home' && <Home />}
+        {activeTab === 'financials' && <Financials />}
+        {activeTab === 'monthly_pnl' && <MonthlyPnL />}
+        {activeTab === 'insurance' && <Insurance />}
+        {activeTab === 'tax' && <Tax />}
       </div>
     </div>
-  )
+  );
 }
 
-export default App
+export default App;
