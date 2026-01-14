@@ -152,3 +152,14 @@ body {
   color: var(--text-main);
   font-weight: 700;
 }
+
+.hover-card {
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: 1px solid transparent;
+}
+.hover-card:hover {
+  transform: translateY(-4px);
+  border-color: var(--primary);
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
+}
