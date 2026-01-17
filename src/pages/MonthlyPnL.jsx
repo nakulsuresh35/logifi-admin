@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Calendar, Truck, TrendingUp, Loader2 } from 'lucide-react';
+import { Calendar, Truck, TrendingUp, Loader2, ArrowLeft } from 'lucide-react';
 import { supabase } from '../supabaseClient'; 
 
 const MonthlyPnL = () => {
@@ -92,8 +92,9 @@ const MonthlyPnL = () => {
   return (
     <div style={{ padding: '20px', minHeight: '100vh', backgroundColor: '#F3F4F6', fontFamily: 'sans-serif' }}>
       
-      {/* Header Card (Green Style) */}
-      <div style={{ backgroundColor: '#10B981', padding: '30px', borderRadius: '16px', color: 'white', marginBottom: '30px', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }}>
+
+      {/* Header Card (Emerald Green) */}
+      <div style={{ backgroundColor: '#10B981', padding: '30px', borderRadius: '16px', color: 'white', marginBottom: '30px', boxShadow: '0 4px 6px -1px rgba(16, 185, 129, 0.3)' }}>
         <h1 style={{ margin: 0, fontSize: '24px' }}>Monthly P&L</h1>
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '5px', opacity: 0.9, fontSize: '14px' }}>
             <Calendar size={16} />
@@ -138,8 +139,9 @@ const MonthlyPnL = () => {
              >
                 {/* Left Side: Icon & Info */}
                 <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
-                   <div style={{ background: '#F3F4F6', padding: '12px', borderRadius: '12px' }}>
-                      <Truck size={24} color="#374151"/>
+                   {/* Mint Green Background for Icon */}
+                   <div style={{ background: '#ECFDF5', padding: '12px', borderRadius: '12px' }}>
+                      <Truck size={24} color="#059669"/>
                    </div>
                    <div>
                       <h3 style={{ margin: 0, fontSize: '18px', color: '#111827' }}>{truck.plate}</h3>

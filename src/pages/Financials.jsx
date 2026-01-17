@@ -106,7 +106,8 @@ const Financials = () => {
   if (view === 'list') {
     return (
       <div>
-        <div style={{ backgroundColor: '#10B981', padding: '30px', borderRadius: '16px', color: 'white', marginBottom: '30px' }}>
+        {/* Changed to Royal Blue */}
+        <div style={{ backgroundColor: '#2563EB', padding: '30px', borderRadius: '16px', color: 'white', marginBottom: '30px', boxShadow: '0 4px 6px -1px rgba(37, 99, 235, 0.3)' }}>
           <h1 style={{ margin: 0, fontSize: '24px' }}>Financials</h1>
           <p style={{ margin: '5px 0 0 0', opacity: 0.9 }}>Truck-wise profit & loss</p>
         </div>
@@ -114,7 +115,8 @@ const Financials = () => {
           {trucks.map(truck => (
             <div key={truck.id} className="card hover-card" onClick={() => handleTruckClick(truck)} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '24px', cursor: 'pointer' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
-                <div style={{ background: '#F3F4F6', padding: '12px', borderRadius: '12px' }}><Truck size={24} color="#374151"/></div>
+                {/* Changed Icon BG to Light Blue and Icon to Blue */}
+                <div style={{ background: '#EFF6FF', padding: '12px', borderRadius: '12px' }}><Truck size={24} color="#2563EB"/></div>
                 <div>
                   <h3 style={{ margin: 0, fontSize: '18px' }}>{truck.plate_number}</h3>
                   <p style={{ margin: '4px 0 0 0', color: '#6B7280' }}>Click to view trips</p>
@@ -140,15 +142,17 @@ const Financials = () => {
           <ArrowLeft size={20} /> Back to Fleet
         </button>
 
-        <div style={{ backgroundColor: '#10B981', padding: '30px', borderRadius: '16px', color: 'white', marginBottom: '30px' }}>
+        {/* Changed to Royal Blue */}
+        <div style={{ backgroundColor: '#2563EB', padding: '30px', borderRadius: '16px', color: 'white', marginBottom: '30px', boxShadow: '0 4px 6px -1px rgba(37, 99, 235, 0.3)' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start' }}>
                 <div>
                     <h1 style={{ margin: 0, fontSize: '24px' }}>{selectedTruck.plate_number}</h1>
                     <p style={{ margin: '5px 0 0 0', opacity: 0.9 }}>Trip History & Financials</p>
                 </div>
+                {/* Changed Button Text to Blue */}
                 <button 
                   onClick={downloadTruckReport} 
-                  style={{ backgroundColor: 'white', color: '#10B981', border: 'none', padding: '10px 20px', borderRadius: '8px', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}
+                  style={{ backgroundColor: 'white', color: '#2563EB', border: 'none', padding: '10px 20px', borderRadius: '8px', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}
                 >
                     <Download size={18} /> Download Excel Report
                 </button>
@@ -174,7 +178,8 @@ const Financials = () => {
                 <p style={{ margin: 0, color: '#6B7280', fontSize: '13px' }}>{new Date(trip.created_at).toLocaleDateString()}</p>
               </div>
               <div style={{ textAlign: 'right' }}>
-                <p style={{ margin: 0, fontSize: '16px', fontWeight: 'bold', color: '#10B981' }}>₹{(trip.total_freight - calculateTotalExpenses(trip.expenses)).toLocaleString()}</p>
+                {/* Keeping Profit Green as standard financial practice */}
+                <p style={{ margin: 0, fontSize: '16px', fontWeight: 'bold', color: '#16a34a' }}>₹{(trip.total_freight - calculateTotalExpenses(trip.expenses)).toLocaleString()}</p>
                 <p style={{ margin: 0, fontSize: '11px', color: '#6B7280' }}>NET PROFIT</p>
               </div>
             </div>
@@ -195,7 +200,8 @@ const Financials = () => {
           <ArrowLeft size={20} /> Back to {selectedTruck.plate_number}
         </button>
 
-        <div style={{ backgroundColor: '#1E40AF', padding: '30px', borderRadius: '16px', color: 'white', marginBottom: '20px' }}>
+        {/* Changed to Royal Blue */}
+        <div style={{ backgroundColor: '#2563EB', padding: '30px', borderRadius: '16px', color: 'white', marginBottom: '20px' }}>
             <h1 style={{ margin: 0, fontSize: '20px' }}>{selectedTrip.from_location} → {selectedTrip.to_location}</h1>
             <div style={{ display: 'flex', gap: '20px', marginTop: '10px', opacity: 0.9 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}><Calendar size={16} /> {new Date(selectedTrip.created_at).toLocaleDateString()}</div>
@@ -205,10 +211,10 @@ const Financials = () => {
         <div className="card" style={{ padding: '24px', marginBottom: '20px' }}>
            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '15px', borderBottom: '1px solid #E5E7EB', paddingBottom: '15px' }}>
               <span style={{ color: '#6B7280' }}>Freight (Income)</span>
-              <span style={{ color: '#10B981', fontWeight: 'bold' }}>+ ₹{selectedTrip.total_freight?.toLocaleString()}</span>
+              {/* Keeping Profit Green */}
+              <span style={{ color: '#16a34a', fontWeight: 'bold' }}>+ ₹{selectedTrip.total_freight?.toLocaleString()}</span>
            </div>
            
-           {/* FIX: Using 'exp.type' from database schema */}
            {expenses.map((exp, i) => (
              <div key={i} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px' }}>
                 <span style={{ color: '#374151', display: 'flex', alignItems: 'center', gap: '8px', fontWeight: '500' }}>
@@ -220,7 +226,7 @@ const Financials = () => {
 
            <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '20px', paddingTop: '15px', borderTop: '2px solid #E5E7EB' }}>
               <span style={{ fontWeight: 'bold' }}>Net Profit</span>
-              <span style={{ color: '#10B981', fontWeight: 'bold', fontSize: '18px' }}>₹{profit.toLocaleString()}</span>
+              <span style={{ color: '#16a34a', fontWeight: 'bold', fontSize: '18px' }}>₹{profit.toLocaleString()}</span>
            </div>
         </div>
       </div>
