@@ -182,7 +182,7 @@ const Insurance = () => {
                         style={{ 
                             flex: 1, 
                             backgroundColor: '#F9FAFB', 
-                            color: 'white', 
+                            color: 'black', 
                             border: 'none', 
                             padding: '14px 20px', 
                             borderRadius: '8px',
